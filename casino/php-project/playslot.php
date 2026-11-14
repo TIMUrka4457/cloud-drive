@@ -32,7 +32,7 @@ else {
             'supplier_unavailable' => 'Провайдер игры не отвечает, попробуйте позже', 'busy' => 'Сервер перегружен, попробуйте через минуту'];
         $err = $msgs[$c] ?? 'Не удалось открыть игру';
         if (in_array($c, WGC_REJECT_CODES, true)) {
-            mysql_query("UPDATE wgc_games SET rejected=1 WHERE public_id='" . mysql_real_escape_string($game['public_id']) . "'");
+            mysql_query("UPDATE wgc_games SET rejected=2 WHERE public_id='" . mysql_real_escape_string($game['public_id']) . "'");
             $err = 'Эта игра сейчас недоступна у провайдера — мы убрали её из каталога. Выберите другую игру';
         }
         error_log('WGC session error: ' . $c . ' ' . ($res['error']['message'] ?? ''));

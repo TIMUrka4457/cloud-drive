@@ -6,9 +6,10 @@ DATA=$BASE/mysql-data
 PHP_ROOT=$BASE/php-project
 PORT=3000
 
-if ! command -v php >/dev/null 2>&1 || ! php -m 2>/dev/null | grep -qi "^mysqli$" || ! php -m 2>/dev/null | grep -qi "^mbstring$"; then
-  apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq php8.2-cli php8.2-mysql php8.2-curl php8.2-mbstring php8.2-gd php8.2-xml php8.2-bcmath libaio1 libnuma1
-fi
+for i in 1 2 3 4 5; do
+  if command -v php >/dev/null 2>&1 && php -m 2>/dev/null | grep -qi "^mysqli$" && php -m 2>/dev/null | grep -qi "^mbstring$" && php -m 2>/dev/null | grep -qi "^curl$"; then break; fi
+  apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq php8.2-cli php8.2-mysql php8.2-curl php8.2-mbstring php8.2-gd php8.2-xml php8.2-bcmath libaio1 libnuma1 || sleep 10
+done
 
 mkdir -p "$RUN"
 if ! $MY/bin/mysqladmin --socket=$RUN/mysql.sock -u root ping --silent 2>/dev/null; then

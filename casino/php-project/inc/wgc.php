@@ -115,37 +115,38 @@ function wgc_rank(): void {
 
 const WGC_REJECT_CODES = ['supplier_rejected', 'not_found', 'game_not_launchable'];
 
-function wgc_try_open(string $publicId): string {
+function wgc_try_open(string $publicId, int $tries = 0): string {
     [$c, $r] = wgc_api('POST', '/v1/sessions', ['publicId' => $publicId, 'playerId' => 'rubin-probe', 'currency' => WGC_CURRENCY,
         'mode' => 'real', 'language' => 'ru', 'platform' => 'desktop'], bin2hex(random_bytes(16)));
-    if ($c === 429) { sleep(3); return wgc_try_open($publicId); }
+    if ($c === 429 && $tries < 5) { sleep(3); return wgc_try_open($publicId, $tries + 1); }
     return !empty($r['ok']) ? 'ok' : (string)($r['error']['code'] ?? 'error');
 }
 
-// Opens 1-2 games of every studio; hides a studio whose games the provider refuses.
+// Opens 1-2 games of every studio; hides a studio whose games the provider refuses (rejected=1).
+// Games hidden after a failed player launch (rejected=2) stay hidden.
 function wgc_probe(): array {
     @set_time_limit(0);
     wgc_meta_set('probe_state', 'running ' . date('Y-m-d H:i:s'));
-    mysql_query("UPDATE wgc_games SET rejected=0");
     $brands = mysql_query("SELECT DISTINCT brand FROM wgc_games WHERE removed=0");
-    $hidden = []; $games = 0;
+    $hidden = []; $badGames = []; $badBrands = [];
     while ($brands && $b = mysql_fetch_assoc($brands)) {
         $be = mysql_real_escape_string((string)$b['brand']);
-        $q = mysql_query("SELECT public_id FROM wgc_games WHERE removed=0 AND brand='$be' ORDER BY sort DESC, name LIMIT 2");
-        $bad = 0; $n = 0;
+        $q = mysql_query("SELECT public_id FROM wgc_games WHERE removed=0 AND brand='$be' AND rejected<>2 ORDER BY sort DESC, name LIMIT 2");
+        $bad = []; $n = 0;
         while ($q && $g = mysql_fetch_assoc($q)) {
             $n++;
-            $res = wgc_try_open($g['public_id']);
-            if (!in_array($res, WGC_REJECT_CODES, true)) break;
-            $bad++;
-            mysql_query("UPDATE wgc_games SET rejected=1 WHERE public_id='" . mysql_real_escape_string($g['public_id']) . "'");
-            $games++;
+            if (!in_array(wgc_try_open($g['public_id']), WGC_REJECT_CODES, true)) break;
+            $bad[] = "'" . mysql_real_escape_string($g['public_id']) . "'";
             usleep(100000);
         }
-        if ($bad > 0 && $bad === $n) { mysql_query("UPDATE wgc_games SET rejected=1 WHERE brand='$be'"); $hidden[] = $b['brand']; }
+        if ($bad && count($bad) === $n) { $badBrands[] = "'$be'"; $hidden[] = $b['brand']; }
+        else $badGames = array_merge($badGames, $bad);
         usleep(100000);
     }
-    $hiddenGames = (int)(mysql_fetch_array(mysql_query("SELECT COUNT(*) c FROM wgc_games WHERE rejected=1"))['c'] ?? 0);
+    mysql_query("UPDATE wgc_games SET rejected=0 WHERE rejected=1");
+    if ($badBrands) mysql_query("UPDATE wgc_games SET rejected=1 WHERE rejected=0 AND brand IN (" . implode(',', $badBrands) . ")");
+    if ($badGames) mysql_query("UPDATE wgc_games SET rejected=1 WHERE rejected=0 AND public_id IN (" . implode(',', $badGames) . ")");
+    $hiddenGames = (int)(mysql_fetch_array(mysql_query("SELECT COUNT(*) c FROM wgc_games WHERE rejected>0"))['c'] ?? 0);
     wgc_meta_set('probe_state', 'done ' . date('Y-m-d H:i:s'));
     wgc_meta_set('probe_hidden', implode(', ', $hidden));
     return ['brands' => $hidden, 'games' => $hiddenGames];

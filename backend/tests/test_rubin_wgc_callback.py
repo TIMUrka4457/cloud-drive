@@ -135,3 +135,56 @@ def test_invalid_bet_value():
 def test_missing_tx_id():
     r = post({"command": "writeBet", "playerId": PID, "currency": "RUB", "bet": 1, "win": 0, "test": True})
     assert r.status_code == 400
+
+
+# Sandbox writeBet kinds: play/bonus/tournament/jackpot/refund all accepted with correct math
+@pytest.mark.parametrize("kind,bet,win", [("play", "3", "1.5"), ("bonus", "0", "7.25"), ("tournament", "0", "50"),
+                                          ("jackpot", "0", "1000.000001"), ("refund", "0", "3")])
+def test_writebet_kinds(kind, bet, win):
+    b0 = bal_test()
+    r = post({"command": "writeBet", "playerId": PID, "currency": "RUB", "transactionId": txid(), "roundId": "rk-" + kind,
+              "gamePublicId": "sweet-bonanza-1", "bet": bet, "win": win, "kind": kind, "test": True}).json()
+    assert r["ok"] is True, r
+    assert abs(r["balance"] - (b0 - float(bet) + float(win))) < 1e-6
+    assert abs(bal_test() - r["balance"]) < 1e-9
+
+
+def test_unknown_kind_rejected():
+    b0 = bal_test()
+    r = post({"command": "writeBet", "playerId": PID, "currency": "RUB", "transactionId": txid(),
+              "bet": 1, "win": 0, "kind": "weird", "test": True}).json()
+    assert r["ok"] is False and r["error"] == "kind_not_supported"
+    assert abs(bal_test() - b0) < 1e-9
+
+
+# Bonus buy: big bet debit, then several free-spin wins with bet 0 in the same round
+def test_bonus_buy_then_freespin_wins():
+    b0 = bal_test()
+    rnd = "bb-" + uuid.uuid4().hex[:8]
+    r = post({"command": "writeBet", "playerId": PID, "currency": "RUB", "transactionId": txid(), "roundId": rnd,
+              "gamePublicId": "sweet-bonanza-1", "bet": "1000", "win": "0", "kind": "play", "test": True}).json()
+    assert r["ok"] is True and abs(r["balance"] - (b0 - 1000)) < 1e-6
+    total = 0.0
+    for w in ["12.40", "0", "250.10", "3.333333"]:
+        r = post({"command": "writeBet", "playerId": PID, "currency": "RUB", "transactionId": txid(), "roundId": rnd,
+                  "gamePublicId": "sweet-bonanza-1", "bet": "0", "win": w, "kind": "play", "test": True}).json()
+        assert r["ok"] is True, r
+        total += float(w)
+    assert abs(bal_test() - (b0 - 1000 + total)) < 1e-5
+
+
+def test_insufficient_funds_no_change():
+    b0 = bal_test()
+    r = post({"command": "writeBet", "playerId": PID, "currency": "RUB", "transactionId": txid(),
+              "bet": str(int(b0) + 10), "win": "0", "test": True}).json()
+    assert r["ok"] is False and r["error"] == "insufficient_funds"
+    assert abs(r["balance"] - b0) < 1e-6 and abs(bal_test() - b0) < 1e-9
+
+
+# Sandbox rollback must not touch a real tx with the same id (is_test scoping)
+def test_sandbox_rollback_does_not_touch_real_tx():
+    before = sql("SELECT rolled_back FROM wgc_tx WHERE tx_id='fs-t1' AND is_test=0")
+    r = post({"command": "rollback", "playerId": PID, "currency": "RUB", "transactionId": "fs-t1", "test": True}).json()
+    assert r["ok"] is True
+    assert sql("SELECT rolled_back FROM wgc_tx WHERE tx_id='fs-t1' AND is_test=0") == before
+    sql("DELETE FROM wgc_tx WHERE tx_id='fs-t1' AND is_test=1")

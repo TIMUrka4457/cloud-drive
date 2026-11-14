@@ -129,7 +129,7 @@ mysqli_query($__conn, "CREATE TABLE IF NOT EXISTS wgc_meta (k VARCHAR(64) PRIMAR
 mysqli_query($__conn, "CREATE TABLE IF NOT EXISTS wgc_test_wallet (player_id VARCHAR(64) PRIMARY KEY, balance BIGINT NOT NULL)");
 mysqli_query($__conn, "CREATE TABLE IF NOT EXISTS wgc_tx (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    tx_id VARCHAR(64) NOT NULL UNIQUE,
+    tx_id VARCHAR(64) NOT NULL,
     user_id INT NOT NULL DEFAULT 0,
     player_id VARCHAR(64) NOT NULL,
     round_id VARCHAR(64) NOT NULL DEFAULT '',
@@ -144,9 +144,11 @@ mysqli_query($__conn, "CREATE TABLE IF NOT EXISTS wgc_tx (
     answer TEXT NULL,
     created_at DATETIME NOT NULL,
     rolled_back_at DATETIME NULL,
+    UNIQUE KEY tx_test (tx_id, is_test),
     KEY user_time (user_id, created_at),
     KEY round (round_id)
 ) DEFAULT CHARSET=utf8mb4");
+if (mysqli_fetch_assoc(mysqli_query($__conn, "SHOW INDEX FROM wgc_tx WHERE Key_name='tx_id'"))) mysqli_query($__conn, "ALTER TABLE wgc_tx DROP INDEX tx_id, ADD UNIQUE KEY tx_test (tx_id, is_test)");
 
 mysqli_query($__conn, "CREATE TABLE IF NOT EXISTS wgc_fs_promo (
     id INT AUTO_INCREMENT PRIMARY KEY,

@@ -199,11 +199,11 @@ elseif ($type === 'wgcProbe') {
 }
 elseif ($type === 'wgcProbeState') {
     require_once __DIR__ . '/../inc/wgc.php';
-    $h = mysqli_fetch_assoc(q($__conn, "SELECT COUNT(*) c FROM wgc_games WHERE rejected=1 AND removed=0"));
+    $h = mysqli_fetch_assoc(q($__conn, "SELECT COUNT(*) c FROM wgc_games WHERE rejected>0 AND removed=0"));
     $result = ['success' => 'success', 'state' => wgc_meta_get('probe_state'), 'hidden' => (int)$h['c'], 'brands' => wgc_meta_get('probe_hidden')];
 }
 elseif ($type === 'wgcUnhide') {
-    q($__conn, "UPDATE wgc_games SET rejected=0");
+    q($__conn, "UPDATE wgc_games SET rejected=0 WHERE rejected>0");
     $result = ['success' => 'success'];
 }
 elseif ($type === 'wgcRound') {

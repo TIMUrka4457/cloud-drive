@@ -19,7 +19,7 @@ $txs = [];
 $r = mysqli_query($__conn, "SELECT t.*, u.login FROM wgc_tx t LEFT JOIN kot_user u ON u.id=t.user_id $where ORDER BY t.id DESC LIMIT 100");
 while ($r && $row = mysqli_fetch_assoc($r)) $txs[] = $row;
 $m = fn($v) => number_format($v / 1000000, 2, '.', ' ');
-$hiddenCnt = (int)mysqli_fetch_assoc(mysqli_query($__conn, "SELECT COUNT(*) c FROM wgc_games WHERE rejected=1 AND removed=0"))['c'];
+$hiddenCnt = (int)mysqli_fetch_assoc(mysqli_query($__conn, "SELECT COUNT(*) c FROM wgc_games WHERE rejected>0 AND removed=0"))['c'];
 $ps = wgc_meta_get('probe_state');
 $probeLabel = $ps === '' ? 'Проверка ещё не запускалась.' : (strpos($ps, 'running') === 0 ? 'Идёт проверка (начата ' . substr($ps, 8) . ')…' : 'Последняя проверка: ' . substr($ps, 5) . '. Скрытые студии: ' . (wgc_meta_get('probe_hidden') ?: 'нет'));
 ?>

@@ -284,6 +284,7 @@ function bwRound(btn, rid) {
     td.style.fontSize = '12px';
   }).catch(() => { btn.disabled = false; });
 }
+function bwAlert(msg, type) {
   var el = document.getElementById('bwAlert');
   el.textContent = msg;
   el.className = 'aw-alert show ' + type;

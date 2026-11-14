@@ -21,14 +21,14 @@ function historys() {
 function createPromo() {
   new Noty({ type:'error', layout:'bottomLeft', theme:'mint', timeout:1000, text:'Для создания промо-кодов нужен депозит от 1000р за всё время.', animation:{open:'animated bounceInLeft',close:'animated bounceOutLeft'} }).show();
 }
-function promo3() {
-  new Noty({ type:'error', layout:'bottomLeft', theme:'mint', timeout:1000, text:'Промокод закончился или вы его уже активировали', animation:{open:'animated bounceInLeft',close:'animated bounceOutLeft'} }).show();
+function promo3(t) {
+  new Noty({ type:'error', layout:'bottomLeft', theme:'mint', timeout:3000, text: t || 'Промокод закончился или вы его уже активировали', animation:{open:'animated bounceInLeft',close:'animated bounceOutLeft'} }).show();
 }
 function nyerror() {
   new Noty({ type:'error', layout:'bottomLeft', theme:'mint', timeout:1000, text:'Данный бонус выдается 1 раз за все время.', animation:{open:'animated bounceInLeft',close:'animated bounceOutLeft'} }).show();
 }
-function promo2() {
-  new Noty({ type:'success', layout:'bottomLeft', theme:'mint', timeout:1000, text:'Промокод активирован', animation:{open:'animated bounceInLeft',close:'animated bounceOutLeft'} }).show();
+function promo2(t) {
+  new Noty({ type:'success', layout:'bottomLeft', theme:'mint', timeout:3000, text: t || 'Промокод активирован', animation:{open:'animated bounceInLeft',close:'animated bounceOutLeft'} }).show();
 }
 function nysoon() {
   new Noty({ type:'error', layout:'bottomLeft', theme:'mint', timeout:1000, text:'Бонус не активен', animation:{open:'animated bounceInLeft',close:'animated bounceOutLeft'} }).show();
@@ -47,12 +47,13 @@ function actPromokod() {
       $('#error_actpromo').hide();
       var obj = jQuery.parseJSON(data);
       if (obj.success == "success") {
-        promo2();
+        promo2(obj.error);
         $(".maksksmaksks").hide(); $(".btn-get-actpromo").hide();
         updateBalance(obj.balance, obj.new_balance);
         updateBalanceMobile(obj.balance, obj.new_balance);
-      } else { promo3(); }
-    }
+      } else { promo3(obj.error); }
+    },
+    error: function() { $('.btn-get-actpromo').removeClass("disabled"); promo3('Ошибка соединения, попробуйте ещё раз'); }
   });
 }
 function actPromo() {

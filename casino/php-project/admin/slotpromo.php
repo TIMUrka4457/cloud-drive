@@ -6,8 +6,12 @@ require_once '../inc/wgc.php';
 $page_title = 'Промокоды на слоты';
 require 'admin-head.php';
 
-[$pc, $pr] = wgc_api('POST', '/v1/freespins', ['probe' => true]);
-$fsDisabled = $pc === 404 && stripos($pr['error']['message'] ?? '', 'endpoint') !== false;
+$fsDisabled = wgc_meta_get('fs_disabled_until') > date('Y-m-d H:i:s');
+if (!$fsDisabled) {
+    [$pc, $pr] = wgc_api('POST', '/v1/freespins', ['probe' => true]);
+    $fsDisabled = $pc === 404 && stripos($pr['error']['message'] ?? '', 'endpoint') !== false;
+    if ($fsDisabled) wgc_meta_set('fs_disabled_until', date('Y-m-d H:i:s', time() + 3600));
+}
 
 $promos = [];
 $r = mysqli_query($__conn, "SELECT * FROM wgc_fs_promo ORDER BY id DESC");
