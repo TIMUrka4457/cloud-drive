@@ -10,7 +10,7 @@ $per = 48;
 [$slots, $total] = wgc_games($per, ($page - 1) * $per, $q, $brand);
 $pages = max(1, (int)ceil($total / $per));
 $brands = [];
-$bq = mysql_query("SELECT brand, COUNT(*) c FROM wgc_games WHERE removed=0 AND kind='slot' AND brand<>'' GROUP BY brand ORDER BY MAX(sort) DESC, c DESC");
+$bq = mysql_query("SELECT brand, COUNT(*) c FROM wgc_games WHERE removed=0 AND rejected=0 AND kind='slot' AND brand<>'' GROUP BY brand ORDER BY MAX(sort) DESC, c DESC");
 while ($bq && $r = mysql_fetch_assoc($bq)) $brands[] = $r;
 $link = fn($p, $b = null) => '/slot?' . http_build_query(array_filter(['q' => $q, 'brand' => $b ?? $brand, 'p' => $p > 1 ? $p : null]));
 ?>

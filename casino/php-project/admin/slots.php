@@ -19,6 +19,9 @@ $txs = [];
 $r = mysqli_query($__conn, "SELECT t.*, u.login FROM wgc_tx t LEFT JOIN kot_user u ON u.id=t.user_id $where ORDER BY t.id DESC LIMIT 100");
 while ($r && $row = mysqli_fetch_assoc($r)) $txs[] = $row;
 $m = fn($v) => number_format($v / 1000000, 2, '.', ' ');
+$hiddenCnt = (int)mysqli_fetch_assoc(mysqli_query($__conn, "SELECT COUNT(*) c FROM wgc_games WHERE rejected=1 AND removed=0"))['c'];
+$ps = wgc_meta_get('probe_state');
+$probeLabel = $ps === '' ? 'Проверка ещё не запускалась.' : (strpos($ps, 'running') === 0 ? 'Идёт проверка (начата ' . substr($ps, 8) . ')…' : 'Последняя проверка: ' . substr($ps, 5) . '. Скрытые студии: ' . (wgc_meta_get('probe_hidden') ?: 'нет'));
 ?>
 <div id="slAlert" class="aw-alert"></div>
 
@@ -37,6 +40,16 @@ $m = fn($v) => number_format($v / 1000000, 2, '.', ' ');
   <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
     <button class="btn btn-primary btn-sm" data-testid="wgc-sync-full" onclick="wgcSync(0, this)">Полная синхронизация каталога</button>
     <button class="btn btn-ghost btn-sm" data-testid="wgc-sync-delta" onclick="wgcSync(1, this)">Только изменения</button>
+  </div>
+</div>
+
+<div class="form-section" style="margin-bottom:20px">
+  <h2>Недоступные провайдеры</h2>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:8px">Проверка открывает по 1–2 игры каждой студии. Игры, которые провайдер не даёт запустить, скрываются из каталога, чтобы игроки не видели ошибок. Игра, которая не открылась у игрока, тоже скрывается сама.</p>
+  <div data-testid="wgc-probe-state" id="probeState" style="font-size:13px;margin-bottom:10px">Скрыто игр: <?= (int)$hiddenCnt ?>. <?= htmlspecialchars($probeLabel) ?></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn btn-primary btn-sm" data-testid="wgc-probe-btn" onclick="wgcProbe(this)">Проверить провайдеров</button>
+    <button class="btn btn-ghost btn-sm" data-testid="wgc-unhide-btn" onclick="bwPost({type:'wgcUnhide'}).then(()=>location.reload())">Показать все игры снова</button>
   </div>
 </div>
 
@@ -72,6 +85,16 @@ $m = fn($v) => number_format($v / 1000000, 2, '.', ' ');
 </div>
 
 <script>
+function wgcProbe(btn) {
+  btn.disabled = true; btn.textContent = 'Проверка идёт…';
+  bwPost({ type: 'wgcProbe' }).then(d => {
+    if (d.success !== 'success') { document.getElementById('probeState').textContent = d.error || 'Ошибка'; }
+    var t = setInterval(() => bwPost({ type: 'wgcProbeState' }).then(s => {
+      document.getElementById('probeState').textContent = 'Скрыто игр: ' + s.hidden + (s.state.indexOf('done') === 0 ? '. Готово. Скрытые студии: ' + (s.brands || 'нет') : '. Идёт проверка…');
+      if (s.state.indexOf('done') === 0) { clearInterval(t); btn.disabled = false; btn.textContent = 'Проверить провайдеров'; }
+    }), 4000);
+  });
+}
 function wgcSync(delta, btn) {
   var el = document.getElementById('slAlert');
   btn.disabled = true; btn.textContent = 'Синхронизация…';

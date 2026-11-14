@@ -31,6 +31,10 @@ else {
             'country_restricted' => 'Игра недоступна в вашей стране', 'not_found' => 'Игра недоступна', 'rate_limited' => 'Слишком много запросов, попробуйте через минуту',
             'supplier_unavailable' => 'Провайдер игры не отвечает, попробуйте позже', 'busy' => 'Сервер перегружен, попробуйте через минуту'];
         $err = $msgs[$c] ?? 'Не удалось открыть игру';
+        if (in_array($c, WGC_REJECT_CODES, true)) {
+            mysql_query("UPDATE wgc_games SET rejected=1 WHERE public_id='" . mysql_real_escape_string($game['public_id']) . "'");
+            $err = 'Эта игра сейчас недоступна у провайдера — мы убрали её из каталога. Выберите другую игру';
+        }
         error_log('WGC session error: ' . $c . ' ' . ($res['error']['message'] ?? ''));
     }
 }
@@ -53,7 +57,10 @@ else {
       <a href="/" class="bw-btn bw-btn-primary">На главную</a>
     </div>
   <?php else: ?>
-    <div class="bw-card" data-testid="slot-error" style="padding:24px;text-align:center;"><?= htmlspecialchars($err) ?></div>
+    <div class="bw-card" data-testid="slot-error" style="padding:24px;text-align:center;">
+      <div style="margin-bottom:14px;"><?= htmlspecialchars($err) ?></div>
+      <a href="/slot" class="bw-btn bw-btn-primary" data-testid="slot-error-back">К другим слотам</a>
+    </div>
   <?php endif; ?>
 </div>
 <?php

@@ -187,12 +187,43 @@ elseif ($type === 'wgcSync') {
     $result = $r['ok'] ? ['success' => 'success', 'count' => $r['count']] : ['success' => 'error', 'error' => 'WGC: ' . $r['error']];
 }
 
+elseif ($type === 'wgcProbe') {
+    require_once __DIR__ . '/../inc/wgc.php';
+    $ps = wgc_meta_get('probe_state');
+    if (strpos($ps, 'running') === 0 && strtotime(substr($ps, 8)) > time() - 900) $result = ['success' => 'error', 'error' => 'Проверка уже идёт'];
+    else {
+        wgc_meta_set('probe_state', 'running ' . date('Y-m-d H:i:s'));
+        exec('php ' . escapeshellarg(realpath(__DIR__ . '/../inc/wgc_probe_cli.php')) . ' > /dev/null 2>&1 &');
+        $result = ['success' => 'success'];
+    }
+}
+elseif ($type === 'wgcProbeState') {
+    require_once __DIR__ . '/../inc/wgc.php';
+    $h = mysqli_fetch_assoc(q($__conn, "SELECT COUNT(*) c FROM wgc_games WHERE rejected=1 AND removed=0"));
+    $result = ['success' => 'success', 'state' => wgc_meta_get('probe_state'), 'hidden' => (int)$h['c'], 'brands' => wgc_meta_get('probe_hidden')];
+}
+elseif ($type === 'wgcUnhide') {
+    q($__conn, "UPDATE wgc_games SET rejected=0");
+    $result = ['success' => 'success'];
+}
+elseif ($type === 'wgcRound') {
+    require_once __DIR__ . '/../inc/wgc.php';
+    $rid = trim($_POST['round'] ?? '');
+    [$c, $r] = $rid !== '' ? wgc_api('GET', '/v1/rounds/' . rawurlencode($rid)) : [0, []];
+    if (empty($r['ok'])) $result = ['success' => 'error', 'error' => 'WGC: ' . ($r['error']['code'] ?? 'нет раунда')];
+    else {
+        $d = $r['data'];
+        $result = ['success' => 'success', 'status' => $d['status'], 'bet' => $d['bet'], 'win' => $d['win'], 'multiplier' => $d['multiplier'],
+            'actions' => $d['actions'] ?? [], 'ops' => count($d['transactions'] ?? [])];
+    }
+}
+
 // ── Slot free-spin promos ─────────────────────────────────────────────────
 elseif ($type === 'wgcGameSearch') {
     require_once __DIR__ . '/../inc/wgc.php';
     $s = esc($__conn, trim($_POST['q'] ?? ''));
     $items = [];
-    $r = q($__conn, "SELECT public_id, name, brand, image FROM wgc_games WHERE removed=0 AND fs=1 AND (name LIKE '%$s%' OR public_id LIKE '%$s%') ORDER BY sort DESC, name LIMIT 20");
+    $r = q($__conn, "SELECT public_id, name, brand, image FROM wgc_games WHERE removed=0 AND rejected=0 AND fs=1 AND (name LIKE '%$s%' OR public_id LIKE '%$s%') ORDER BY sort DESC, name LIMIT 20");
     while ($r && $row = mysqli_fetch_assoc($r)) $items[] = $row;
     $result = ['success' => 'success', 'items' => $items];
 }

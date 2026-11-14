@@ -18,12 +18,19 @@ if ($uid > 0) {
 // ── Last 10 bets for player ───────────────────────────────────────────────
 // kot_games columns: id, user_id, login, number, cel, sum, chance, type, win_summa, game
 $player_bets = [];
+$slot_bets = [];
+$slot_sum = null;
 if ($player) {
     $br = mysqli_query($__conn,
         "SELECT id, game, type, sum, win_summa FROM kot_games
          WHERE user_id=" . (int)$player['id'] . "
-         ORDER BY id DESC LIMIT 10");
+         ORDER BY id DESC LIMIT 50");
     while ($b = mysqli_fetch_assoc($br)) $player_bets[] = $b;
+    $sr = mysqli_query($__conn, "SELECT t.*, g.name gname FROM wgc_tx t LEFT JOIN wgc_games g ON g.public_id=t.game
+         WHERE t.user_id=" . (int)$player['id'] . " AND t.is_test=0 ORDER BY t.id DESC LIMIT 100");
+    while ($sr && $b = mysqli_fetch_assoc($sr)) $slot_bets[] = $b;
+    $slot_sum = mysqli_fetch_assoc(mysqli_query($__conn, "SELECT COUNT(*) n, COALESCE(SUM(bet),0) b, COALESCE(SUM(win),0) w FROM wgc_tx
+         WHERE user_id=" . (int)$player['id'] . " AND is_test=0 AND booked=1 AND rolled_back=0"));
 }
 
 // ── Search results ────────────────────────────────────────────────────────
@@ -208,9 +215,38 @@ $gname_map = [1 => 'Dice', 2 => 'Mines', 3 => 'Bubbles', 4 => 'X50'];
   </table>
 </div>
 
-<!-- Last 10 bets -->
+<!-- Slot bets -->
+<div class="aw-table-wrap" style="margin-bottom:20px">
+  <div class="tw-head" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+    <h2>Ставки в слотах</h2>
+    <span style="font-size:12px;color:var(--muted)" data-testid="player-slot-summary">Ставок: <?= (int)$slot_sum['n'] ?> · Поставлено: <?= number_format($slot_sum['b'] / 1000000, 2) ?> ₽ · Выиграно: <?= number_format($slot_sum['w'] / 1000000, 2) ?> ₽ · Итог: <?= number_format(($slot_sum['w'] - $slot_sum['b']) / 1000000, 2) ?> ₽</span>
+  </div>
+  <table class="aw-table" data-testid="player-slot-bets">
+    <tr><th>ID</th><th>Слот</th><th>Ставка</th><th>Выигрыш</th><th>P/L</th><th>Статус</th><th>Дата</th><th></th></tr>
+    <?php if (empty($slot_bets)): ?>
+    <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">Ставок в слотах пока нет</td></tr>
+    <?php else: foreach ($slot_bets as $t):
+      $pl = ($t['win'] - $t['bet']) / 1000000;
+      $st = $t['rolled_back'] ? '<span class="badge badge-yellow">Откат</span>' : ($t['booked'] ? '<span class="badge badge-green">Принята</span>' : '<span class="badge badge-red">Отказ</span>');
+      if ($t['kind'] !== 'play') $st .= ' <span class="badge badge-blue">' . htmlspecialchars($t['kind']) . '</span>';
+    ?>
+    <tr>
+      <td style="color:var(--muted)">#<?= (int)$t['id'] ?></td>
+      <td style="font-size:12px"><?= htmlspecialchars($t['gname'] ?: $t['game']) ?></td>
+      <td><?= number_format($t['bet'] / 1000000, 2) ?> ₽</td>
+      <td><?= number_format($t['win'] / 1000000, 2) ?> ₽</td>
+      <td style="color:<?= $pl >= 0 ? 'var(--green)' : 'var(--red)' ?>"><?= $pl >= 0 ? '+' : '' ?><?= number_format($pl, 2) ?></td>
+      <td><?= $st ?></td>
+      <td style="color:var(--muted);font-size:12px"><?= htmlspecialchars($t['created_at']) ?></td>
+      <td><?php if ($t['round_id'] !== ''): ?><button class="btn btn-ghost btn-sm" data-testid="slot-round-<?= (int)$t['id'] ?>" onclick="bwRound(this, <?= htmlspecialchars(json_encode($t['round_id'])) ?>)">Раунд</button><?php endif ?></td>
+    </tr>
+    <?php endforeach; endif ?>
+  </table>
+</div>
+
+<!-- Own games bets -->
 <div class="aw-table-wrap">
-  <div class="tw-head"><h2>Last 10 bets</h2></div>
+  <div class="tw-head"><h2>Ставки в играх (последние 50)</h2></div>
   <table class="aw-table">
     <tr><th>ID</th><th>Game</th><th>Type</th><th>Bet</th><th>Won</th><th>P/L</th></tr>
     <?php if (empty($player_bets)): ?>
@@ -237,7 +273,17 @@ $gname_map = [1 => 'Dice', 2 => 'Mines', 3 => 'Bubbles', 4 => 'X50'];
 <?php endif ?>
 
 <script>
-function bwAlert(msg, type) {
+var bwActionNames = { bet: 'ставка', ante_bet: 'повышенная ставка', bonus_buy: 'покупка бонуса', bonus_triggered: 'бонус-раунд', free_spins: 'фриспины',
+  respin: 'респин', promo_freespin: 'промо-фриспин', win: 'выигрыш', no_win: 'без выигрыша', jackpot: 'джекпот', tournament_prize: 'приз турнира', refund: 'возврат', rollback: 'откат' };
+function bwRound(btn, rid) {
+  btn.disabled = true;
+  bwPost({ type: 'wgcRound', round: rid }).then(d => {
+    var td = btn.parentNode;
+    if (d.success !== 'success') { td.textContent = d.error || 'Ошибка'; return; }
+    td.textContent = (d.actions || []).map(a => bwActionNames[a] || a).join(', ') + ' · ' + (d.status === 'closed' ? 'закрыт' : 'открыт') + (d.multiplier ? ' · x' + d.multiplier : '');
+    td.style.fontSize = '12px';
+  }).catch(() => { btn.disabled = false; });
+}
   var el = document.getElementById('bwAlert');
   el.textContent = msg;
   el.className = 'aw-alert show ' + type;

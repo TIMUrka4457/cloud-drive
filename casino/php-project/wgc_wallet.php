@@ -95,7 +95,7 @@ try {
             $ans = ['ok' => false, 'error' => 'transaction_rolled_back', 'balance' => money($w['bal'])];
         } else {
             $bal = $w['bal'];
-            if (!in_array($kind, ['play', 'refund', 'jackpot'], true)) $ans = ['ok' => false, 'error' => 'kind_not_supported', 'balance' => money($bal)];
+            if (!in_array($kind, ['play', 'refund', 'jackpot', 'tournament', 'bonus'], true)) $ans = ['ok' => false, 'error' => 'kind_not_supported', 'balance' => money($bal)];
             elseif ($w['ban'] && $bet > 0) $ans = ['ok' => false, 'error' => 'player_blocked', 'balance' => money($bal)];
             elseif ($bal < $bet) $ans = ['ok' => false, 'error' => 'insufficient_funds', 'balance' => money($bal)];
             else {
