@@ -42,9 +42,11 @@ else {
     <?php if ($game): ?><span style="font-size:12px;opacity:.6;margin-left:auto;"><?= htmlspecialchars($game['brand']) ?></span><?php endif; ?>
   </div>
   <?php if ($url): ?>
-    <div style="position:relative;width:100%;height:calc(100vh - 220px);min-height:420px;border-radius:16px;overflow:hidden;background:#000;">
-      <iframe data-testid="slot-iframe" src="<?= htmlspecialchars($url) ?>" allow="fullscreen; autoplay" allowfullscreen style="border:0;width:100%;height:100%;"></iframe>
+    <div class="bw-card" data-testid="slot-redirect" style="padding:24px;text-align:center;">
+      <div style="margin-bottom:14px;">Открываем игру…</div>
+      <a href="<?= htmlspecialchars($url) ?>" target="_blank" rel="noopener" class="bw-btn bw-btn-primary" data-testid="slot-open-link">Открыть игру</a>
     </div>
+    <script>window.location.href = <?= json_encode($url) ?>;</script>
   <?php elseif ($err === 'login'): ?>
     <div class="bw-card" data-testid="slot-login-required" style="padding:24px;text-align:center;">
       <div style="margin-bottom:14px;">Войдите или зарегистрируйтесь, чтобы играть</div>

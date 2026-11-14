@@ -13,6 +13,17 @@ set_include_path(get_include_path() . PATH_SEPARATOR . $root);
 error_reporting(E_ERROR | E_PARSE);
 ini_set('display_errors', 0);
 
+// Session cookie must work inside the embedded preview (third-party iframe)
+header_register_callback(function () {
+    $cookies = array_filter(headers_list(), fn($h) => stripos($h, 'Set-Cookie:') === 0);
+    if (!$cookies) return;
+    header_remove('Set-Cookie');
+    foreach ($cookies as $c) {
+        $c = preg_replace('/;\s*(SameSite=[^;]*|Partitioned|secure)/i', '', $c);
+        header($c . '; Secure; SameSite=None; Partitioned', false);
+    }
+});
+
 $uri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
 
 // Serve static files directly

@@ -61,3 +61,9 @@ Download zip from Google Drive, run the user's Replit project as-is (no rewrite)
 - casino/ (PHP project, MySQL 8.0.46 binary in .runtime, datadir with all data) copied to /app/casino; PHP 8.2 installed; frontend supervisor start -> /app/casino/start-emergent.sh
 - Login/registration verified in browser (works); added 20s ajax timeout to login()/register() in components/modal.php so the spinner never hangs
 - Test admin: tst465641 / Test12345
+
+## Iteration 11 (2026-11)
+- Login/registration fix for embedded preview: router.php rewrites Set-Cookie with Secure; SameSite=None; Partitioned (session survived reload inside iframe); start script adds session.cookie_secure=1
+- WGC_API_KEY + SLOTS_API_SECRET set via secrets; catalog synced (19103 games)
+- /playslot now redirects to the WGC game URL (window.location) instead of iframe, fallback "Открыть игру" link
+- Some games return supplier_rejected from WGC (provider side); WGC Callback URL must be https://<preview-host>/wgc_wallet.php

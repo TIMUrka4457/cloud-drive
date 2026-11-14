@@ -24,4 +24,4 @@ if ! $MY/bin/mysqladmin --socket=$RUN/mysql.sock -u root ping --silent 2>/dev/nu
 fi
 
 export PHP_CLI_SERVER_WORKERS=4
-exec php -d short_open_tag=On -d memory_limit=512M -S "0.0.0.0:$PORT" -t "$PHP_ROOT" "$PHP_ROOT/router.php"
+exec php -d short_open_tag=On -d memory_limit=512M -d session.cookie_secure=1 -S "0.0.0.0:$PORT" -t "$PHP_ROOT" "$PHP_ROOT/router.php"
