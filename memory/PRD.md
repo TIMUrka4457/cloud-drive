@@ -68,3 +68,5 @@ Download zip from Google Drive, run the user's Replit project as-is (no rewrite)
 - /playslot now redirects to the WGC game URL (window.location) instead of iframe, fallback "Открыть игру" link
 - Some games return supplier_rejected from WGC (provider side); WGC Callback URL must be https://<preview-host>/wgc_wallet.php
 - WGC callback also available at /api/slots/callback (FastAPI backend/server.py proxies raw body + X-WGC-Signature to PHP wgc_wallet.php via CASINO_PHP_URL); admin/slots shows this URL
+- Iteration 12: testing_agent iteration_1 — 100% pass (login in iframe, registration, /slot -> redirect to play.worldgamingconnect.com, /api/slots/callback signature/idempotency/rollback). wgc_wallet tx lookups now scoped by is_test. Tests: backend/tests/test_rubin_wgc_callback.py
+- Pending: real WGC callbacks not yet received (no real browser opened a game yet; session firstOpenedAt null)

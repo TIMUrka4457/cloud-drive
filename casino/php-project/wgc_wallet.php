@@ -86,8 +86,8 @@ try {
         $win = array_key_exists('win', $b) && $b['win'] !== null ? micros($b['win']) : null;
         if ($bet === null || $win === null) { $db->rollback(); wreply(400, ['ok' => false, 'error' => 'invalid_request']); }
         $kind = (string)($b['kind'] ?? 'play');
-        $st = $db->prepare("SELECT answer FROM wgc_tx WHERE tx_id=? FOR UPDATE");
-        $st->bind_param('s', $txId); $st->execute();
+        $st = $db->prepare("SELECT answer FROM wgc_tx WHERE tx_id=? AND is_test=? FOR UPDATE");
+        $tq = $isTest ? 1 : 0; $st->bind_param('si', $txId, $tq); $st->execute();
         $seen = $st->get_result()->fetch_assoc();
         if ($seen && $seen['answer'] !== null) {
             $ans = json_decode($seen['answer'], true);
@@ -114,15 +114,15 @@ try {
             $st->execute();
         }
     } else {
-        $st = $db->prepare("SELECT bet, win, booked, rolled_back FROM wgc_tx WHERE tx_id=? FOR UPDATE");
-        $st->bind_param('s', $txId); $st->execute();
+        $st = $db->prepare("SELECT bet, win, booked, rolled_back FROM wgc_tx WHERE tx_id=? AND is_test=? FOR UPDATE");
+        $tq = $isTest ? 1 : 0; $st->bind_param('si', $txId, $tq); $st->execute();
         $tx = $st->get_result()->fetch_assoc();
         $bal = $w['bal'];
         if ($tx && (int)$tx['booked'] === 1 && (int)$tx['rolled_back'] === 0) {
             $bal = max(0, $bal + (int)$tx['bet'] - (int)$tx['win']);
             $saveBalance($bal);
-            $st = $db->prepare("UPDATE wgc_tx SET rolled_back=1, rolled_back_at=NOW() WHERE tx_id=?");
-            $st->bind_param('s', $txId); $st->execute();
+            $st = $db->prepare("UPDATE wgc_tx SET rolled_back=1, rolled_back_at=NOW() WHERE tx_id=? AND is_test=?");
+            $st->bind_param('si', $txId, $tq); $st->execute();
         } elseif (!$tx) {
             $t = $isTest ? 1 : 0; $kind = 'rollback';
             $st = $db->prepare("INSERT INTO wgc_tx (tx_id, user_id, player_id, round_id, game, kind, currency, bet, win, booked, rolled_back, is_test, answer, created_at, rolled_back_at) VALUES (?,?,?,'','',?,?,0,0,0,1,?,NULL,NOW(),NOW())");
