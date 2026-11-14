@@ -344,9 +344,9 @@ new Noty({
     <script src="/files/jquery_003.js"></script>
     <script src="/files/Chart.js"></script><style type="text/css">/* Chart.js */
 @-webkit-keyframes chartjs-render-animation{from{opacity:0.99}to{opacity:1}}@keyframes chartjs-render-animation{from{opacity:0.99}to{opacity:1}}.chartjs-render-monitor{-webkit-animation:chartjs-render-animation 0.001s;animation:chartjs-render-animation 0.001s;}</style>
+    <script src="/files/dataTables.js"></script>
     <script src="/files/dataTables.responsive.min.js"></script>
     <script src="/files/responsive.dataTables.min.js"></script>
-    <script src="/files/dataTables.js"></script>
     <script src="/files/jquery_002.js"></script>
     <script src="/files/jquery_004.js"></script>
     <script src="/files/moment.js"></script>
