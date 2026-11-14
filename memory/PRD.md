@@ -67,3 +67,4 @@ Download zip from Google Drive, run the user's Replit project as-is (no rewrite)
 - WGC_API_KEY + SLOTS_API_SECRET set via secrets; catalog synced (19103 games)
 - /playslot now redirects to the WGC game URL (window.location) instead of iframe, fallback "Открыть игру" link
 - Some games return supplier_rejected from WGC (provider side); WGC Callback URL must be https://<preview-host>/wgc_wallet.php
+- WGC callback also available at /api/slots/callback (FastAPI backend/server.py proxies raw body + X-WGC-Signature to PHP wgc_wallet.php via CASINO_PHP_URL); admin/slots shows this URL

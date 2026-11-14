@@ -32,7 +32,7 @@ $m = fn($v) => number_format($v / 1000000, 2, '.', ' ');
 <div class="form-section" style="margin-bottom:20px">
   <h2>Настройки в бэкофисе WGC</h2>
   <p style="font-size:13px;color:var(--muted);margin-bottom:8px">Settings → Integration → Callback URL:</p>
-  <code data-testid="wgc-callback-url" style="display:block;padding:10px;background:rgba(255,255,255,.05);border-radius:8px;word-break:break-all"><?= htmlspecialchars($host) ?>/wgc_wallet.php</code>
+  <code data-testid="wgc-callback-url" style="display:block;padding:10px;background:rgba(255,255,255,.05);border-radius:8px;word-break:break-all"><?= htmlspecialchars($host) ?>/api/slots/callback</code>
   <p style="font-size:12px;color:var(--muted);margin-top:8px">Валюта: <?= WGC_CURRENCY ?>. Последняя синхронизация: <?= htmlspecialchars(wgc_meta_get('last_sync_local') ?: '—') ?></p>
   <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
     <button class="btn btn-primary btn-sm" data-testid="wgc-sync-full" onclick="wgcSync(0, this)">Полная синхронизация каталога</button>
