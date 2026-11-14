@@ -56,3 +56,8 @@ Download zip from Google Drive, run the user's Replit project as-is (no rewrite)
 - /admin/slots: key status, Callback URL, full/delta sync, tx log + search; find.php includes slot tx
 - Secrets: SLOTS_API_SECRET (Callback Secret, set), WGC_API_KEY (pending)
 - Note: PHP reads env from process (restart frontend after secrets change)
+
+## Iteration 10 (2026-11) — restore from GitHub TIMUrka558/drive
+- casino/ (PHP project, MySQL 8.0.46 binary in .runtime, datadir with all data) copied to /app/casino; PHP 8.2 installed; frontend supervisor start -> /app/casino/start-emergent.sh
+- Login/registration verified in browser (works); added 20s ajax timeout to login()/register() in components/modal.php so the spinner never hangs
+- Test admin: tst465641 / Test12345

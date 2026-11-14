@@ -2465,6 +2465,7 @@ function login() {
                                 $.ajax({
                                     type: 'POST',
                                     url: '/action.php',
+                                    timeout: 20000,
                                     beforeSend: function() {
                                         
                                         $('#butEnter').html('<div class="spinner-border spinner-border-sm tx-white link-03 tx-medium tx-spacing--0 tx-10"></div>');
@@ -2518,6 +2519,7 @@ function login() {
                                 $.ajax({
                                     type: 'POST',
                                     url: '/action.php',
+                                    timeout: 20000,
                                     beforeSend: function() {
                                         $('#butRegister').html('<div class="spinner-border spinner-border-sm tx-white link-03 tx-medium tx-spacing--0 tx-10"></div>').addClass('disabled');
                                         $('#error_register').hide();
